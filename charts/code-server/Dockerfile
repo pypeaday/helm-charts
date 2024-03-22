@@ -27,6 +27,9 @@ RUN echo "**** install dependencies ****" && \
   wget \
   postgresql-client \
   libgeos-dev \
+  libssl-dev \
+  libedit-dev \
+  libncursesw5 \
   docker-ce-cli \
   python3 \
   python3-apt \
@@ -53,21 +56,21 @@ RUN echo "**** install k3d ****" && \
   bash /tmp/k3d_install.sh --no-sudo
 
 RUN echo "**** install pyenv ****" && \
-  git clone https://github.com/pyenv/pyenv.git /opt/pyenv
-ENV PYENV_ROOT /opt/pyenv
-RUN /pyenv/bin/pyenv install 3.10.12
+  git clone https://github.com/pyenv/pyenv.git /home/coder/.pyenv
+ENV PYENV_ROOT /home/coder/.pyenv
+RUN /home/coder/.pyenv/bin/pyenv install 3.10.12
 RUN echo 'eval "$(pyenv init -)"' >> /home/codeuser/.bashrc
 
-RUN echo "**** install miniconda ****" && \
-  wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
-  checksum=1314b90489f154602fd794accfc90446111514a5a72fe1f71ab83e07de9504a7 && \
-  if \
-  echo "$checksum /tmp/miniconda.sh" | sha256sum -c - \ 
-  ; then \
-  bash /tmp/miniconda.sh -b -p /opt/miniconda \
-  ; fi && \
-  chown -R codeuser:codeuser \
-  /opt/miniconda
+# RUN echo "**** install miniconda ****" && \
+#   wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
+#   checksum=1314b90489f154602fd794accfc90446111514a5a72fe1f71ab83e07de9504a7 && \
+#   if \
+#   echo "$checksum /tmp/miniconda.sh" | sha256sum -c - \ 
+#   ; then \
+#   bash /tmp/miniconda.sh -b -p /opt/miniconda \
+#   ; fi && \
+#   chown -R codeuser:codeuser \
+#   /opt/miniconda
 
 RUN echo "**** install jupyter ****" && \
   pip3 install jupyter jupyter-server
