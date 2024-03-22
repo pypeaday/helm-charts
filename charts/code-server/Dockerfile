@@ -56,42 +56,14 @@ RUN echo "**** install k3d ****" && \
   bash /tmp/k3d_install.sh --no-sudo
 
 RUN echo "**** install pyenv ****" && \
-  git clone https://github.com/pyenv/pyenv.git /home/coder/.pyenv
-ENV PYENV_ROOT /home/coder/.pyenv
-RUN /home/coder/.pyenv/bin/pyenv install 3.10.12
+  git clone https://github.com/pyenv/pyenv.git /home/codeuser/.pyenv
+ENV PYENV_ROOT /home/codeuser/.pyenv
+RUN /home/codeuser/.pyenv/bin/pyenv install 3.10.12
 RUN echo 'eval "$(pyenv init -)"' >> /home/codeuser/.bashrc
-
-# RUN echo "**** install miniconda ****" && \
-#   wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh && \
-#   checksum=1314b90489f154602fd794accfc90446111514a5a72fe1f71ab83e07de9504a7 && \
-#   if \
-#   echo "$checksum /tmp/miniconda.sh" | sha256sum -c - \ 
-#   ; then \
-#   bash /tmp/miniconda.sh -b -p /opt/miniconda \
-#   ; fi && \
-#   chown -R codeuser:codeuser \
-#   /opt/miniconda
 
 RUN echo "**** install jupyter ****" && \
   pip3 install jupyter jupyter-server
 
-#RUN rm /usr/local/lib/code-server-3.8.0/yarn.lock
-#&& cd code-server \
-#&& npm i --global yarn \
-#&& yarn add \
-#	cryptiles@4.1.2 \
-#	eslint-utils@1.4.1 \
-#	extend@3.0.2 \
-#	growl@1.10.0 \
-#	lodash.template@4.5.0 \
-#	macaddress@0.2.9 \
-#	mixin-deep@1.3.2 \
-#	set-value@2.0.1 \
-# && npm i --package-lock-only \
-# && npm audit fix --force \
-# && rm yarn.lock \
-# && yarn import \
-# && rm package-lock.json
 
 RUN echo "**** clean up ****" \
   #&& apt-get --purge remove pkg-config libx11-dev \
@@ -107,8 +79,7 @@ ENV ITEM_URL https://open-vsx.org/vscode/item
 ENV HOME /home/codeuser
 ENV PATH ${HOME}/.local/bin:${PATH}
 ENV PATH ${HOME}/.env/bin:${PATH}
-ENV PATH /opt/pyenv/bin:${PATH}
-ENV PATH /opt/miniconda/bin:${PATH}
+ENV PATH ${PYENV_ROOT}:${PATH}
 ENV SHELL /bin/bash
 ENV DOCKER_HOST tcp://localhost:2375
 WORKDIR /home/codeuser
