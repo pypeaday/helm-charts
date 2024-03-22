@@ -1,0 +1,17 @@
+{{ if .Values.user.persistent }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "code-server.fullname" . }}-mnt-home-pvc
+  labels:
+    {{ include "code-server.labels" . | nindent 4 }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  - ReadOnlyMany
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.user.capacity }}
+  storageClassName: {{ .Values.user.storageClassName }}
+{{ end }}

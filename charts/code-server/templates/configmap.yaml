@@ -1,0 +1,68 @@
+
+{{ if .Values.keycloak }}
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap-keycloak
+data:
+  OAUTH2_PROXY_HTTP_ADDRESS: http://:4180
+  OAUTH2_PROXY_LOGIN_URL: "https://{{ .Values.keycloak.url }}/auth/realms/{{ .Values.keycloak.realm }}/protocol/openid-connect/auth"
+  OAUTH2_PROXY_PROVIDER: keycloak
+  OAUTH2_PROXY_REDEEM_URL: "https://{{ .Values.keycloak.url }}/auth/realms/{{ .Values.keycloak.realm }}/protocol/openid-connect/token"
+  OAUTH2_PROXY_REVERSE_PROXY: "true"
+  OAUTH2_PROXY_SCOPE: email
+  OAUTH2_PROXY_UPSTREAMS: http://localhost:8443/,http://localhost/fileserver/
+  OAUTH2_PROXY_VALIDATE_URL: "https://{{ .Values.keycloak.url }}/auth/realms/{{ .Values.keycloak.realm }}/protocol/openid-connect/userinfo"
+  {{ if .Values.keycloak.CA }}
+  OAUTH2_PROXY_PROVIDER_CA_FILE: /etc/oauth2_proxy_ssl/custom_ca.crt
+  custom_ca.crt: {{ toYaml .Values.keycloak.CA | indent 2  }}
+  {{ end }}
+  {{ if .Values.keycloak.group }}
+  OAUTH2_PROXY_KEYCLOAK_GROUP: {{ .Values.keycloak.group  }}
+  {{ end }}
+  {{ if .Values.keycloak.allowed_emails }}
+  allowed_emails: |
+    {{- range $.Values.keycloak.allowed_emails }}
+    {{ . }}
+    {{- end }}
+  OAUTH2_PROXY_AUTHENTICATED_EMAILS_FILE: /etc/oauth2_proxy/allowed_emails
+  {{ else if .Values.keycloak.allowed_emails_domain }}
+  OAUTH2_PROXY_EMAIL_DOMAINS: {{ .Values.keycloak.allowed_emails_domain }}
+  {{ else }}
+  OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+  {{ end }}
+
+{{ end }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-configmap-files
+data:
+  .bashrc: |
+    PS1='\[\033[01;34m\]\w\[\033[00m\] \$ '
+
+    # >>> conda initialize >>>
+    # !! Contents within this block are managed by 'conda init' !!
+    __conda_setup="$('/opt/miniconda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    else
+        if [ -f "/opt/miniconda/etc/profile.d/conda.sh" ]; then
+            . "/opt/miniconda/etc/profile.d/conda.sh"
+        else
+            export PATH="/opt/miniconda/bin:$PATH"
+        fi
+    fi
+    unset __conda_setup
+    # <<< conda initialize <<<
+
+    DIR="/home/codeuser/.env"
+    if [ -d "$DIR" ]; then
+        conda activate /home/codeuser/.env
+    else
+        conda create -p /home/codeuser/.env -q -y
+        conda activate /home/codeuser/.env
+    fi

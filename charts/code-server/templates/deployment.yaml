@@ -1,0 +1,203 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "code-server.fullname" . }}
+  labels:
+    {{- include "code-server.labels" . | nindent 4 }}
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "code-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "code-server.selectorLabels" . | nindent 8 }}
+
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "code-server.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
+      volumes:
+      {{ if .Values.user.persistent }}
+      - name: mnt-home
+        persistentVolumeClaim:
+          claimName: {{ include "code-server.fullname" . }}-mnt-home-pvc
+      {{ end }}
+      {{- range .Values.nfs }}
+      - name: {{ .name }}-nfs
+        persistentVolumeClaim:
+          claimName: {{ include "code-server.fullname" $ }}-{{ .name }}-pvc
+      {{- end }}
+      {{- range .Values.irods }}
+      - name: {{ .name }}-irods
+        persistentVolumeClaim:
+          claimName: {{ include "code-server.fullname" $ }}-{{ .name }}-pvc
+      {{- end }}
+      {{ if .Values.keycloak.allowed_emails }}
+      - name: allowed-emails-volume
+        configMap:
+          name: {{ .Release.Name }}-configmap-keycloak
+          items:
+          - key: allowed_emails
+            path: allowed_emails
+      {{ end }}
+      {{ if .Values.keycloak.CA }}
+      - name: custom-ca
+        configMap:
+          name: {{ .Release.Name }}-configmap-keycloak
+          items:
+          - key: custom_ca.crt
+            path: custom_ca.crt
+      {{ end }}
+      - name: configmap-files
+        configMap:
+          name: {{ .Release.Name }}-configmap-files
+      - name: ifm-volume
+        emptyDir: {}
+
+
+      initContainers:
+      - name: init-bashrc
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: busybox
+        command: ['sh', '-c', 'FILE=/home/codeuser/.bashrc; if [ ! -f "$FILE" ]; then cp /tmp/files/.bashrc $FILE; fi; wget https://github.com/misterunknown/ifm/releases/download/v2.6.3/ifm.min.php -O /app/fileserver/index.php']
+        volumeMounts:
+        {{ if .Values.user.persistent }}
+        - mountPath: /home/codeuser
+          name: mnt-home
+        {{ end }}
+        - mountPath: /tmp/files
+          name: configmap-files
+        - mountPath: /app/fileserver
+          name: ifm-volume
+
+
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        command: ["code-server"]
+        {{ if .Values.keycloak }}
+        args: [
+          "--bind-addr", "127.0.0.1:8443",
+          "--disable-telemetry",
+          "--auth", "none"
+        ]
+        {{ else }}
+        ports:
+          - name: http
+            containerPort: 8443
+            protocol: TCP
+        args: [
+          "--bind-addr", "0.0.0.0:8443",
+          "--disable-telemetry",
+          "--auth", "none"]
+        {{ end }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        {{ if .Values.user.persistent }}
+        - mountPath: /home/codeuser
+          name: mnt-home
+        {{ end }}
+        {{- range .Values.nfs }}
+        - mountPath: /mnt/{{ .name }}-nfs
+          name: {{ .name }}-nfs
+        {{- end }}
+        {{- range .Values.irods }}
+        - mountPath: /mnt/{{ .name }}-irods
+          name: {{ .name }}-irods
+        {{- end }}
+
+
+      - name: {{ .Chart.Name }}-dind
+        image: docker:19.03-dind
+        securityContext:
+          privileged: true
+        env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+        - name: DOCKER_DRIVER
+          value: "overlay2"
+
+
+      - name: {{ .Chart.Name }}-fileserver
+        image: webdevops/php-nginx:8.0-alpine
+        ports:
+        - name: nginxhttp
+          containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /app/fileserver
+          name: ifm-volume
+        {{ if .Values.user.persistent }}
+        - mountPath: /app/fileserver/home
+          name: mnt-home
+        {{ end }}
+        {{- range .Values.nfs }}
+        - mountPath: /app/fileserver/{{ .name }}-nfs
+          name: {{ .name }}-nfs
+        {{- end }}
+        {{- range .Values.irods }}
+        - mountPath: /app/fileserver/{{ .name }}-irods
+          name: {{ .name }}-irods
+        {{- end }}
+
+
+      {{ if .Values.keycloak }}
+      - name: {{ .Chart.Name }}-oauth2-proxy
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: quay.io/oauth2-proxy/oauth2-proxy:latest
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+          - name: http
+            containerPort: 4180
+            protocol: TCP
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        envFrom:
+        - secretRef:
+            name: {{ .Release.Name }}-secret-keycloak
+        - configMapRef:
+            name: {{ .Release.Name }}-configmap-keycloak
+        {{ if or .Values.keycloak.allowed_emails .Values.keycloak.CA }}
+        volumeMounts:
+          {{ if .Values.keycloak.allowed_emails }} 
+          - mountPath: /etc/oauth2_proxy
+            name: allowed-emails-volume
+          {{ end }}
+          {{ if .Values.keycloak.CA }}
+          - mountPath: /etc/oauth2_proxy_ssl
+            name: custom-ca
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

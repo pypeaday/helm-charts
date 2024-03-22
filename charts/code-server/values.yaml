@@ -1,0 +1,103 @@
+# Default values for code-server.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+user:
+  namespace: USERNAMESPACE #namespace for user deployments with basic roles
+  persistent: true
+  storageClassName: default
+  capacity: 10Gi
+
+resources: {}
+#  We usually recommend not to specify default resources and to leave this as a conscious
+#  choice for the user. This also increases chances charts run on environments with little
+#  resources, such as Minikube. If you do want to specify resources, uncomment the following
+#  lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+#  limits:
+#    cpu: 100m
+#    memory: 128Mi
+#  requests:
+#    cpu: 100m
+#    memory: 128Mi
+
+keycloak: {}
+#  url: keycloak.example.com
+#  realm: master
+#  allowed_emails: [] # array of allowed users
+#  group: false # if no specified emails you can limit by keycloak groups => /groupname
+#  client_id: CODE-SERVER-ID
+#  client_secret: CODE-SERVER-SECRET
+
+nfs: []
+#  - path: /path/to/first/export
+#    name: first-nfs #used for mountpoint at /mnt/
+#    readonly: false
+#    server: nfs.example.com
+#    capacity: 100Gi
+#  - path: /path/to/second/export
+#    name: second-nfs #used for mountpoint at /mnt/
+#    readonly: false
+#    server: nfs.example.com
+#    capacity: 10Gi
+
+irods: []
+#  - driver: "irodsfuse"
+#    user: "irods_user"
+#    password: "password" in plane text
+#    host: "data.cyverse.org"
+#    port: "1247"
+#    zone: "iplant"
+#    path: "/home/irods_user"
+
+
+ingress:
+  enabled: true
+  hosts:
+    - host: code-server.example.com
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  tls: {}
+
+imagePullSecrets:
+  - name: default #if you need to pull from private repo
+
+#nodeSelector:
+#  code-server/node-purpose: user #
+
+image:
+  repository: registry.example.com/code-server
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: latest
+
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsGroup: 1000
+  runAsUser: 1000
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  runAsNonRoot: true
+
+service:
+  type: ClusterIP
+  port: 8080

@@ -1,0 +1,45 @@
+{{- range .Values.nfs }}
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "code-server.fullname" $ }}-{{ .name }}-pvc
+  labels:
+    {{ include "code-server.labels" $ | nindent 4 }}
+spec:
+  accessModes:
+  {{ if .readonly }}
+  - ReadOnlyMany
+  {{ else }}
+  - ReadOnlyMany
+  - ReadWriteMany
+  {{ end }}
+  resources:
+    requests:
+      storage: {{ .capacity }}
+  storageClassName: ""
+  volumeMode: Filesystem
+  volumeName: {{ include "code-server.fullname" $ }}-{{ .name }}-pv
+
+{{- end }}
+
+{{- range .Values.irods }}
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "code-server.fullname" $ }}-{{ .name }}-pvc
+  labels:
+    {{ include "code-server.labels" $ | nindent 4 }}
+spec:
+  volumeName: {{ include "code-server.fullname" $ }}-{{ .name }}-pv
+  accessModes:
+    - ReadWriteMany
+  storageClassName: irods-sc
+  resources:
+    requests:
+      storage: 5Gi
+
+
+{{- end }}

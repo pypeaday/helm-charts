@@ -1,0 +1,59 @@
+{{- range .Values.nfs }}
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "code-server.fullname" $ }}-{{ .name }}-pv
+  labels:
+    {{ include "code-server.labels" $ | nindent 4 }}
+spec:
+  accessModes:
+  {{ if .readonly }}
+  - ReadOnlyMany
+  {{ else }}
+  - ReadOnlyMany
+  - ReadWriteMany
+  {{ end }}
+  capacity:
+    storage: {{ .capacity }}
+  nfs:
+    path: {{ .path }}
+    readOnly: {{ .readonly }}
+    server: {{ .server }}
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+
+{{- end }}
+
+
+{{- range .Values.irods }}
+
+--- 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "code-server.fullname" $ }}-{{ .name }}-pv
+  labels:
+    {{ include "code-server.labels" $ | nindent 4 }}
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: irods-sc
+  csi:
+    driver: irods.csi.cyverse.org
+    volumeHandle: irods-irodsfuse-vol-id
+    volumeAttributes:
+      client: {{ .client }}
+      host: {{ .host }}
+      port: {{ .port | quote }}
+      zone: {{ .zone }}
+      user: {{ .user }}
+      password: {{ .password }}
+      path: {{ .path }}
+
+{{- end }}
