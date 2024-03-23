@@ -55,16 +55,6 @@ RUN echo "**** install k3d ****" && \
   wget -q -O - https://raw.githubusercontent.com/rancher/k3d/main/install.sh -O /tmp/k3d_install.sh && \
   bash /tmp/k3d_install.sh --no-sudo
 
-RUN echo "**** install pyenv ****" && \
-  git clone https://github.com/pyenv/pyenv.git /home/codeuser/.pyenv
-ENV PYENV_ROOT /home/codeuser/.pyenv
-RUN /home/codeuser/.pyenv/bin/pyenv install 3.10.12
-RUN echo 'eval "$(pyenv init -)"' >> /home/codeuser/.bashrc
-
-RUN echo "**** install jupyter ****" && \
-  pip3 install jupyter jupyter-server
-
-
 RUN echo "**** clean up ****" \
   #&& apt-get --purge remove pkg-config libx11-dev \
   && apt-get clean \
@@ -72,6 +62,18 @@ RUN echo "**** clean up ****" \
   /tmp/* \
   /var/lib/apt/lists/* \
   /var/tmp/*
+
+USER codeuser
+
+RUN echo "**** install pyenv ****" && \
+  git clone https://github.com/pyenv/pyenv.git /home/codeuser/.pyenv
+ENV PYENV_ROOT /home/codeuser/.pyenv
+RUN /home/codeuser/.pyenv/bin/pyenv install 3.10.12
+RUN echo 'eval "$(pyenv init -)"' >> /home/codeuser/.bashrc
+
+# RUN echo "**** install jupyter ****" && \
+#   pip3 install jupyter jupyter-server
+
 
 # ENV Setup
 ENV SERVICE_URL https://open-vsx.org/vscode/gallery
