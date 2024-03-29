@@ -56,6 +56,9 @@ RUN /opt/pyenv/bin/pyenv install 3.10.12 && \
   /opt/pyenv/bin/pyenv global 3.10.12
 # RUN echo 'eval "$(pyenv init -)"' >> /home/codeuser/.bashrc
 
+# MAke sure there's a writeable folder to put python environments into
+RUN mkdir /opt/python-environments && chmod 777 /opt/python-environments
+
 # RUN echo "**** install jupyter ****" && \
 #   pip3 install jupyter jupyter-server
 
@@ -79,11 +82,23 @@ EXPOSE 8443
 
 # Keep these at the bottom so I can change them in build without having to rebuild everything
 # ENV DOCKER_MODS linuxserver/mods:code-server-scikit-learn|linuxserver/mods:code-server-shellcheck|linuxserver/mods:code-server-terraform|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-awscli
+ENV DOCKER_MODS linuxserver/mods:code-server-shellcheck|linuxserver/mods:code-server-terraform|linuxserver/mods:code-server-zsh
 # TODO: For SSL https://github.com/linuxserver/docker-mods/tree/code-server-ssl
 
 # This is probably exactly what you'd add to devcontainer.json
-ENV VSCODE_EXTENSION_IDS vscode-icons-team.vscode-icons|tamasfe.even-better-toml|mhutchie.git-graph|alefragnani.project-manager|ms-python.python|charliermarsh.ruff|Gruntfuggly.todo-tree|redhat.vscode-yaml
+# ENV VSCODE_EXTENSION_IDS vscode-icons-team.vscode-icons|tamasfe.even-better-toml|mhutchie.git-graph|alefragnani.project-manager|ms-python.python|charliermarsh.ruff|Gruntfuggly.todo-tree|redhat.vscode-yaml
+# TODO: starship prompt
+#
+# TODO: some dotfiles
+#
+# TODO: pyenv virtualenv or uv?
+#
+# TODO: pipx and other tools... use an ansible playbook?
+#
+# abc user HOME is /config
+ENV PATH /config/.local/bin:${PATH}
 
+RUN addgroup --gid 1001 ansible-nas && adduser --uid 997 --gid 1001 ansible-nas
 # CMD [ "code-server",  "--bind-addr", "127.0.0.1:8443", \
 #   "--disable-telemetry", \
 #   "--auth", "none" \
