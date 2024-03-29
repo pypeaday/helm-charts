@@ -1,13 +1,6 @@
 FROM lscr.io/linuxserver/code-server:latest
 LABEL maintainer="pypeaday"
 
-# TODO: remove python3 mod and setup pyenv myself eventually
-ENV DOCKER_MODS=linuxserver/mods:code-server-python3|linuxserver/mods:code-server-scikit-learn|linuxserver/mods:code-server-shellcheck|linuxserver/mods:code-server-terraform|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-awscli
-# TODO: For SSL https://github.com/linuxserver/docker-mods/tree/code-server-ssl
-
-# This is probably exactly what you'd add to devcontainer.json
-ENV VSCODE_EXTENSION_IDS=vscode-icons-team.vscode-icons|tamasfe.even-better-toml|mhutchie.git-graph|alefragnani.project-manager|ms-python.python|charliermarsh.ruff|Gruntfuggly.todo-tree|redhat.vscode-yaml
-
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get upgrade -y && \
@@ -59,7 +52,8 @@ RUN echo "**** clean up ****" \
 RUN echo "**** install pyenv ****" && \
   git clone https://github.com/pyenv/pyenv.git /opt/pyenv
 ENV PYENV_ROOT /opt/pyenv
-RUN /opt/pyenv/bin/pyenv install 3.10.12
+RUN /opt/pyenv/bin/pyenv install 3.10.12 && \
+  /opt/pyenv/bin/pyenv global 3.10.12
 # RUN echo 'eval "$(pyenv init -)"' >> /home/codeuser/.bashrc
 
 # RUN echo "**** install jupyter ****" && \
@@ -67,8 +61,8 @@ RUN /opt/pyenv/bin/pyenv install 3.10.12
 
 
 # ENV Setup
-ENV SERVICE_URL https://open-vsx.org/vscode/gallery
-ENV ITEM_URL https://open-vsx.org/vscode/item
+# ENV SERVICE_URL https://open-vsx.org/vscode/gallery
+# ENV ITEM_URL https://open-vsx.org/vscode/item
 # ENV HOME /home/codeuser
 # ENV PATH ${HOME}/.local/bin:${PATH}
 # ENV PATH ${HOME}/.env/bin:${PATH}
@@ -76,11 +70,21 @@ ENV ITEM_URL https://open-vsx.org/vscode/item
 # ENV SHELL /bin/bash
 # TODO: what to do about podman?
 ENV DOCKER_HOST tcp://localhost:2375
-# WORKDIR /home/codeuser
+
+RUN /opt/pyenv/bin/pyenv init -
+
+ENV PATH /app/code-server/bin:${PATH}
+
 EXPOSE 8443
-# USER codeuser
-CMD [   "code-server", \
-  "--bind-addr", "127.0.0.1:8443", \
-  "--disable-telemetry", \
-  "--auth", "none" \
-  ]
+
+# Keep these at the bottom so I can change them in build without having to rebuild everything
+# ENV DOCKER_MODS linuxserver/mods:code-server-scikit-learn|linuxserver/mods:code-server-shellcheck|linuxserver/mods:code-server-terraform|linuxserver/mods:code-server-zsh|linuxserver/mods:code-server-awscli
+# TODO: For SSL https://github.com/linuxserver/docker-mods/tree/code-server-ssl
+
+# This is probably exactly what you'd add to devcontainer.json
+ENV VSCODE_EXTENSION_IDS vscode-icons-team.vscode-icons|tamasfe.even-better-toml|mhutchie.git-graph|alefragnani.project-manager|ms-python.python|charliermarsh.ruff|Gruntfuggly.todo-tree|redhat.vscode-yaml
+
+# CMD [ "code-server",  "--bind-addr", "127.0.0.1:8443", \
+#   "--disable-telemetry", \
+#   "--auth", "none" \
+#   ]
