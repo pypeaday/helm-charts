@@ -1,5 +1,5 @@
 # https://github.com/argoproj/argo-helm/blob/main/charts/argo-cd/values.yaml
-# argo-cd:
+argo-cd: {}
 #   server:
 #     extraArgs:
 #       - --insecure
